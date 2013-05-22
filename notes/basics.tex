@@ -1,0 +1,143 @@
+\documentclass[12pt,a4paper,draft]{article}
+\usepackage[utf8x]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage{ucs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\begin{document}
+\section{Enumerated Types}
+
+В языке Coq практически нет никаких встроенных батареек -- ни логических значений, ни чисел. Coq предоставляет мощные стредства для определения новых типов данных и функций, которые оперируют и трансформируют эти типы.
+
+\subsection{Days of the Week}
+Рассмотрим простой пример:
+
+\begin{verbatim}
+Inductive day : Type :=
+  | monday : day
+  | tuesday : day
+  | wednesday : day
+  | thursday : day
+  | friday : day
+  | saturday : day
+  | sunday : day.
+\end{verbatim}
+
+Это объявление говорит Coq, что мы определяем новый набор значений данных -- "тип". Этот тип назвали \texttt{day}, а значения этого типа -- \texttt{monday}, \texttt{tuesday} и т.д.
+
+После того, как мы определили тип, мы можем построить функцию над значениями этого типа:
+
+\begin{verbatim}
+Definition next_weekday (d:day) : day :=
+  match d with
+  | monday => tuesday
+  | tuesday => wednesday
+  | wednesday => thursday
+  | thursday => friday
+  | friday => monday
+  | saturday => monday
+  | sunday => monday
+  end.
+\end{verbatim}
+
+В Coq есть механизм вывода типов, который почти всегда может вывести тип, но для простоты понимания лучше всегда указывать сигнатуры.
+
+После того, как мы определили функцию, самое время проверить ее работоспособность на нескольких примерах. В Coq есть три способа сделать это. Во-первых, мы можем использовать команду \texttt{Eval simpl}:
+
+\begin{verbatim}
+Eval simpl in (next_weekday friday).
+   (* ==> monday : day *)
+Eval simpl in (next_weekday (next_weekday saturday)).
+   (* ==> tuesday : day *)
+\end{verbatim}
+
+Во-вторых, мы можем явно указать какой результат вы ожидаем:
+
+\begin{verbatim}
+Example test_next_weekday:
+  (next_weekday (next_weekday saturday)) = tuesday.
+\end{verbatim}
+
+После этого мы можем поручить Coq проверить это утверждение:
+
+\begin{verbatim}
+Proof. simpl. reflexivity. Qed.
+\end{verbatim}
+
+Третий способ заключается в экстракции определения в какой-нибудь язык программирования (OCaml, Scheme или Haskell). Это очень крутая возможность т.к. на выходе получится полностью корректная (fully certified) программа. Это одна из основых фич системы Coq, ради которой все и разрабатывалось.
+
+\subsection{Booleans}
+
+Аналогично мы можем определить тип \texttt{bool} для логических значений:
+
+\begin{verbatim}
+Inductive bool : Type :=
+  | true : bool
+  | false : bool.
+\end{verbatim}
+
+В стандартной библиотеке Coq есть определения и леммы для логических значений (\texttt{Coq.Init.Datatypes}), но мы будем делать все руками в академических целях.
+
+Построим несколько полезных функций над значениями типа \texttt{bool}:
+
+\begin{verbatim}
+Definition negb (b:bool) : bool :=
+  match b with
+  | true => false
+  | false => true
+  end.
+
+Definition andb (b1:bool) (b2:bool) : bool :=
+  match b1 with
+  | true => b2
+  | false => false
+  end.
+
+Definition orb (b1:bool) (b2:bool) : bool :=
+  match b1 with
+  | true => true
+  | false => b2
+  end.
+\end{verbatim}
+
+Мы можем определять и функции нескольких переменных. Теперь напишем 4 "юнит-теста", которые составляют полную спецификацию -- таблицу истинности -- для функции \texttt{orb}:
+
+\begin{verbatim}
+Example test_orb1: (orb true false) = true.
+Proof. simpl. reflexivity. Qed.
+Example test_orb2: (orb false false) = false.
+Proof. simpl. reflexivity. Qed.
+Example test_orb3: (orb false true) = true.
+Proof. simpl. reflexivity. Qed.
+Example test_orb4: (orb true true) = true.
+Proof. simpl. reflexivity. Qed.
+\end{verbatim}
+
+\section{Function Types}
+В Coq есть команда \texttt{Check}, которая печатает тип выражения.
+
+\begin{verbatim}
+Check true.
+(* ===> true : bool *)
+Check (negb true).
+(* ===> negb true : bool *)
+\end{verbatim}
+
+Функции тоже имеют свой тип:
+
+\begin{verbatim}
+Check negb.
+(* ===> negb : bool -> bool *)
+\end{verbatim}
+
+Из этой записи видно, что \texttt{negb} принимает на вход одно значение типа \texttt{bool} и возвращает значение типа \texttt{bool}. У функций нескольких переменных сигнатура будет иметь примерно такой вид:
+
+\begin{verbatim}
+Check andb.
+(* ===> andb : bool -> bool -> bool *)
+\end{verbatim}
+
+Это одначает, что функция принимает на вход два аргумента типа \texttt{bool} и возвращает значение типа \texttt{bool}.
+\end{document}
