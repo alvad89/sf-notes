@@ -246,4 +246,91 @@ Proof.
 \end{verbatim}
 
 Первая строка доказательства перемещает оба квантора в контекст, вторая заталкивает туда гипотезу, третья говорит Coq переписать текущую цель($n + n = m + m$) заменой левой части равенства гипотезы $H$ правой частью.
+
+\section{Case Analysis}
+
+Разумеется далеко не все можно доказать простыми вычислениями: например произвольные числа, логические значения, списки и т.п. могут составлять определение функции, блокируя тем самым упрощение. Использование тактики \texttt{simpl} в следующем примере бесполезно:
+
+\begin{verbatim}
+Theorem plus_1_neq_0_firsttry : forall n : nat,
+  beq_nat (n + 1) 0 = false.
+Proof.
+  intros n. simpl. (* does nothing! *)
+Admitted.
+\end{verbatim}
+
+В этом случае кошерно использовать тактику \texttt{destruct}, которая разделит доказательство на две независимые ветви для $n=0$ и $n = S \, n'$:
+
+\begin{verbatim}
+Theorem plus_1_neq_0 : forall n : nat,
+  beq_nat (n + 1) 0 = false.
+Proof.
+  intros n. destruct n as [| n'].
+    reflexivity.
+    reflexivity. Qed.
+\end{verbatim}
+
+
+\section{Naming Cases}
+
+Отсутсвие в Coq явной команды для перехода из одной ветви доказательства в другую может превратить стройное доказательство в нечитаемое месиво, которое трудно воспринимать и разбирать. Расстановка отступов и комментарии могут несколько улучшить ситуацию, но лучше использовать тактику \texttt{Case}. Тактика \texttt{Case} не встроена в Coq, поэтому ее нужно определить самому:
+
+\begin{verbatim}
+Require String. Open Scope string_scope.
+
+Ltac move_to_top x :=
+  match reverse goal with
+  | H : _ |- _ => try move x after H
+  end.
+
+Tactic Notation "assert_eq" ident(x) constr(v) :=
+  let H := fresh in
+  assert (x = v) as H by reflexivity;
+  clear H.
+
+Tactic Notation "Case_aux" ident(x) constr(name) :=
+  first [
+    set (x := name); move_to_top x
+  | assert_eq x name; move_to_top x
+  | fail 1 "because we are working on a different case" ].
+
+Tactic Notation "Case" constr(name) := Case_aux Case name.
+Tactic Notation "SCase" constr(name) := Case_aux SCase name.
+Tactic Notation "SSCase" constr(name) := Case_aux SSCase name.
+\end{verbatim}
+
+Пример использования:
+
+\begin{verbatim}
+Theorem andb_true_elim1 : forall b c : bool,
+  andb b c = true -> b = true.
+Proof.
+  intros b c H.
+  destruct b.
+  Case "b = true".
+    reflexivity.
+  Case "b = false".
+    rewrite <- H. reflexivity. Qed.
+\end{verbatim}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 \end{document}
